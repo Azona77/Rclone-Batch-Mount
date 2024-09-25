@@ -12,7 +12,8 @@ It offers a convenient way to mount and unmount Rclone remotes with a single cli
 
 ## Usage
 - Configure Parameters: Edit the beginning of the script to set the drive labels, mount paths, and Rclone configuration paths.
-- Run the Script: Double-click the .ps1 file to execute.
+- **Batch Mount**: Double-click the .ps1 file to execute.
+- **Batch Unmount**: Run the .ps1 file again to shutdown all rclone processes.
 
 Note: Ensure that Rclone is correctly installed and that the specified drive labels and paths are accurate before running the script.
 
