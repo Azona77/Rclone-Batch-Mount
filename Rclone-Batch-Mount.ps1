@@ -1,15 +1,14 @@
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
 # Define drive labels and other configurable parameters
-$driveLabels = @('WD Elements', 'Samsung USB', 'Other Drive Name')
-$rcloneMountPaths = @("S:", "T:", "U:", "V:", "W:")
-$rcloneCacheDir = "D:\Temp\Rclone_cache"
-$rcloneMountConfigs = @(
-    "mount config: S: --vfs-cache-mode full --rc --rc-addr=localhost:5572 --cache-dir $rcloneCacheDir",
-    "mount portable: T: --vfs-cache-mode full --rc --rc-addr=localhost:5573 --cache-dir $rcloneCacheDir",
-    "mount portable2: U: --vfs-cache-mode full --rc --rc-addr=localhost:5574 --cache-dir $rcloneCacheDir",
-    "mount onedrive_crypt: V: --vfs-cache-mode full --rc --rc-addr=localhost:5575 --cache-dir $rcloneCacheDir",
-    "mount webdav: W: --vfs-cache-mode full --rc --rc-addr=localhost:5576 --cache-dir $rcloneCacheDir")
+$driveLabels = @('WD Elements', 'Samsung USB', 'portable2', 'portable3', 'Other Drive Name')
 # rclone path relative to the portable hard drive(folder containing rclone.exe)
-$relativeRclonePath = "\archive\tool\rclone"
+$relativeRclonePath = "tool\rclone"
+
+$rcloneCacheDir = "C:\Temp\Rclone_cache"
+# rclone mounts
+$command = "rclone"
+$mount_1 = "mount", "rclone_local:", "S:", "--vfs-cache-mode", "full", "--cache-dir", "C:\Temp\Rclone_cache"
+$mount_2 = "mount", "rclone_cloud:", "T:", "--vfs-cache-mode", "full", "--cache-dir", "C:\Temp\Rclone_cache"
 
 # Check if any rclone process is running
 $existingRcloneProcess = Get-Process rclone -ErrorAction SilentlyContinue
@@ -72,56 +71,12 @@ $PlainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR
 Set-ItemProperty -Path 'HKCU:\Environment' -Name 'RCLONE_CONFIG_PASS' -Value $PlainPassword
 
 $PlainPassword = [Environment]::GetEnvironmentVariable("RCLONE_CONFIG_PASS", "User")
-if (!$PlainPassword) {
-    Write-Host "RCLONE_CONFIG_PASS environment variable not found. Cannot start rclone mounts."
-    exit 1
-}
+
 # Write the password to the environment variable
 $Env:RCLONE_CONFIG_PASS = $PlainPassword
 
-Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
-
-# Start rclone mounts
-foreach ($config in $rcloneMountConfigs) {
-    Start-Process -FilePath "rclone" -ArgumentList $config -WindowStyle Hidden
-}
+Start-Process -FilePath $command -ArgumentList $mount_1 -WindowStyle Hidden
+Start-Process -FilePath $command -ArgumentList $mount_2 -WindowStyle Hidden
 
 # Clean up password in environment variable
 Remove-ItemProperty -Path 'HKCU:\Environment' -Name 'RCLONE_CONFIG_PASS'
-
-Start-Sleep -Milliseconds 5000
-$mountSuccess = $True
-
-# Check if mounts are successful
-foreach ($mount in $rcloneMountPaths) {
-    if (-not (Test-Path $mount)) {
-        $mountSuccess = $False
-        break
-    }
-}
-
-# Output result
-if ($mountSuccess) {
-    Write-Host "All mounts successful."
-} else {
-    Write-Host "Mounting failed. Some paths do not exist."
-}
-
-# Notify user of the result
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
-$notifyIcon = New-Object System.Windows.Forms.NotifyIcon
-$notifyIcon.Icon = [System.Drawing.SystemIcons]::Information
-$notifyIcon.Visible = $true
-if ($mountSuccess) {
-    $notifyIcon.BalloonTipIcon = 'Info'
-    $notifyIcon.BalloonTipTitle = 'Rclone Mount Success'
-    $notifyIcon.BalloonTipText = 'Rclone mounts were successful.'
-} else {
-    $notifyIcon.BalloonTipIcon = 'Error'
-    $notifyIcon.BalloonTipTitle = 'Rclone Mount Failed'
-    $notifyIcon.BalloonTipText = 'Rclone mounting failed. Password might be incorrect.'
-}
-$notifyIcon.ShowBalloonTip(10000)
-$notifyIcon.Dispose()
-exit
